@@ -162,9 +162,7 @@ public:
 
             setColor(13);
             cout << "\n";
-            centerText("Player ");
-            cout << player << " Turn : ";
-
+            centerText(string("Player ") + player + " Turn : ");
             cin >> choice;
 
             if(!markBoard(choice)) {
@@ -185,8 +183,8 @@ public:
                 cout << "\n";
                 centerText("Congratulations!\n\n");
 
-                centerText("Player ");
-                cout << player << " Wins!\n\n";
+                centerText(string("Player ") + player + " Wins!");
+                cout << "\n\n";
                 break;
             }
 
@@ -196,7 +194,8 @@ public:
 
                 setColor(14);
                 cout << "\n";
-                centerText("Match Draw!\n\n");
+                centerText("Match Draw!");
+                cout << "\n\n";
                 break;
             }
 
