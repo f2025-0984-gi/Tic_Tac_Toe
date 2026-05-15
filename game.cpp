@@ -1,6 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include <cctype>
+#include <fstream>
 using namespace std;
 
 class TicTacToe {
@@ -8,6 +9,7 @@ private:
     char board[4][4];
     char player;
     int turns;
+    string playerOName, playerXName;  // playerOName = O, playerXName = X
 
 public:
     // Constructor
@@ -25,6 +27,13 @@ public:
 
         player = 'X';
         turns = 0;
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+        cout << "\n\n";
+        cout << "  Enter Player 1 name (O): ";
+        cin >> playerOName;
+        cout << "  Enter Player 2 name (X): ";
+        cin >> playerXName;
     }
 
     // ===== COLORS =====
@@ -33,9 +42,9 @@ public:
     }
 
     // ===== CENTER TEXT =====
-    void centerText(string text) {
+    void centerText(string text, int offset = 0) {
         int width = 100;
-        int spaces = (width - text.length()) / 2;
+        int spaces = (width - text.length()) / 2 + offset;
 
         for(int i = 0; i < spaces; i++)
             cout << " ";
@@ -48,6 +57,18 @@ public:
         system("cls");
     }
 
+    // ===== LOAD STATS =====
+    void loadStats(int &totalGames, int &playerOWins, int &playerXWins, int &totalDraws) {
+        ifstream fin("stats.txt");
+        if(fin) fin >> totalGames >> playerOWins >> playerXWins >> totalDraws;
+        else totalGames = playerOWins = playerXWins = totalDraws = 0;
+    }
+
+    void saveStats(int totalGames, int playerOWins, int playerXWins, int totalDraws) {
+        ofstream fout("stats.txt");
+        fout << totalGames << " " << playerOWins << " " << playerXWins << " " << totalDraws;
+    }
+
     // ===== DRAW BOARD =====
     void drawBoard() {
 
@@ -58,7 +79,7 @@ public:
         cout << "\n";
         centerText("     TIC TAC TOE 4 x 4");
         cout << "\n";
-        centerText("=================================\n\n");
+        centerText(" =================================\n\n");
 
         for(int i = 0; i < 4; i++) {
 
@@ -152,59 +173,101 @@ public:
         player = (player == 'X') ? 'O' : 'X';
     }
 
+    // ===== RESET BOARD =====
+    void resetBoard() {
+        char temp[4][4] = {
+            {'1','2','3','4'},
+            {'5','6','7','8'},
+            {'9','A','B','C'},
+            {'D','E','F','G'}
+        };
+        for(int i = 0; i < 4; i++)
+            for(int j = 0; j < 4; j++)
+                board[i][j] = temp[i][j];
+        player = 'X';
+        turns = 0;
+    }
+
     // ===== GAME LOOP =====
     void play() {
-        char choice;
+        char choice, again;
 
-        while(true) {
-            clearScreen();
-            drawBoard();
+        do {
+            resetBoard();
+
+            while(true) {
+                clearScreen();
+                drawBoard();
+
+                setColor(13);
+                cout << "\n";
+                string currentPlayerName = (player == 'O') ? playerOName : playerXName;
+                centerText(currentPlayerName + " (" + player + ") Turn : ", -1);
+
+                cin >> choice;
+
+                if(!markBoard(choice)) {
+                    setColor(12);
+                    cout << "\n\n";
+                    centerText("Invalid Move!");
+                    Sleep(1200);
+                    continue;
+                }
+
+                turns++;
+
+                if(checkWin()) {
+                    clearScreen();
+                    drawBoard();
+
+                    int totalGames, playerOWins, playerXWins, totalDraws;
+                    loadStats(totalGames, playerOWins, playerXWins, totalDraws);
+                    totalGames++;
+                    if(player == 'O') playerOWins++; else playerXWins++;
+                    saveStats(totalGames, playerOWins, playerXWins, totalDraws);
+
+                    string winnerName = (player == 'O') ? playerOName : playerXName;
+                    setColor(10);
+                    centerText(winnerName + " (" + player + ") Wins!");
+                    cout << "\n";
+                    break;
+                }
+
+                if(turns == 16) {
+                    clearScreen();
+                    drawBoard();
+
+                    int totalGames, playerOWins, playerXWins, totalDraws;
+                    loadStats(totalGames, playerOWins, playerXWins, totalDraws);
+                    totalGames++; totalDraws++;
+                    saveStats(totalGames, playerOWins, playerXWins, totalDraws);
+
+                    setColor(14);
+                    centerText("It's a Draw!");
+                    cout << "\n";
+                    break;
+                }
+
+                switchPlayer();
+            }
+
+            int totalGames, playerOWins, playerXWins, totalDraws;
+            loadStats(totalGames, playerOWins, playerXWins, totalDraws);
+
+            setColor(11);
+            cout << "\n";
+            centerText("--- Stats ---");
+            cout << "\n";
+            centerText("Games: " + to_string(totalGames) + "  " + playerOName + " Wins: " + to_string(playerOWins) + "  " + playerXName + " Wins: " + to_string(playerXWins) + "  Draws: " + to_string(totalDraws));
+            cout << "\n\n";
 
             setColor(13);
-            cout << "\n";
-            centerText(string("Player ") + player + " Turn : ");
-            cin >> choice;
+            centerText("Play again? (y/n) : ");
+            cin >> again;
 
-            if(!markBoard(choice)) {
-                setColor(12);
-                cout << "\n\n";
-                centerText("Invalid Move!");
-                Sleep(1200);
-                continue;
-            }
-
-            turns++;
-
-            if(checkWin()) {
-                clearScreen();
-                drawBoard();
-
-                setColor(10);
-                cout << "\n";
-                centerText("Congratulations!\n\n");
-
-                centerText(string("Player ") + player + " Wins!");
-                cout << "\n\n";
-                break;
-            }
-
-            if(turns == 16) {
-                clearScreen();
-                drawBoard();
-
-                setColor(14);
-                cout << "\n";
-                centerText("Match Draw!");
-                cout << "\n\n";
-                break;
-            }
-
-            switchPlayer();
-        }
+        } while(again == 'y' || again == 'Y');
 
         setColor(7);
-        cout << "\n";
-        system("pause");
     }
 };
 
